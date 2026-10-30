@@ -1,0 +1,717 @@
+package com.golf6.home;
+
+import android.Manifest;
+import android.app.Activity;
+import android.app.AlertDialog;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.media.AudioManager;
+import android.net.Uri;
+import android.provider.Settings;
+import android.view.WindowManager;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
+import android.content.res.Configuration;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.drawable.Drawable;
+import android.location.Location;
+import android.location.LocationManager;
+import android.os.Build;
+import android.os.Bundle;
+import android.os.Handler;
+import android.speech.tts.TextToSpeech;
+import android.speech.tts.Voice;
+import android.util.Base64;
+import android.webkit.JavascriptInterface;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
+import android.widget.Toast;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import java.io.ByteArrayOutputStream;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+
+public class MainActivity extends Activity {
+
+    // Prénom prononcé dans le message d'accueil.
+    private static final String PRENOM = "Jonathan";
+    // Délai (ms) avant la phrase, pour la caler sur l'animation de démarrage.
+    private static final long DELAI_VOIX = 1400;
+
+    // Une seule annonce par démarrage de l'autoradio (tant que le processus vit).
+    private static boolean dejaSalue = false;
+
+    private WebView web;
+    private SharedPreferences prefs;
+    private TextToSpeech tts;
+    private boolean ttsPret = false;
+    private boolean salutationEnAttente = false;
+    private final Handler handler = new Handler();
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        prefs = getSharedPreferences("accueil", MODE_PRIVATE);
+        initVoix();
+
+        web = new WebView(this);
+        web.setBackgroundColor(Color.BLACK);
+        WebSettings s = web.getSettings();
+        s.setJavaScriptEnabled(true);
+        s.setDomStorageEnabled(true);
+        web.addJavascriptInterface(new Bridge(), "Android");
+        web.setWebViewClient(new WebViewClient() {
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                sendLocation();
+                sendZlink();
+            }
+        });
+        setContentView(web);
+        web.loadUrl("file:///android_asset/index.html?night=" + (isSystemNight() ? "1" : "0"));
+
+        appliquerLuminosite(prefs.getInt("bright", 80));
+        if (Build.VERSION.SDK_INT >= 31
+                && checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT)
+                != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[]{Manifest.permission.BLUETOOTH_CONNECT}, 2);
+        }
+        if (Build.VERSION.SDK_INT >= 23
+                && checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[]{
+                    Manifest.permission.ACCESS_COARSE_LOCATION,
+                    Manifest.permission.ACCESS_FINE_LOCATION}, 1);
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int code, String[] perms, int[] results) {
+        super.onRequestPermissionsResult(code, perms, results);
+        sendLocation();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        sendLocation();
+    }
+
+    // ---------- Voix : message de bienvenue ----------
+
+    private void initVoix() {
+        tts = new TextToSpeech(this, new TextToSpeech.OnInitListener() {
+            @Override
+            public void onInit(int status) {
+                if (status != TextToSpeech.SUCCESS) {
+                    return;
+                }
+                try {
+                    int r = tts.setLanguage(Locale.FRANCE);
+                    if (r == TextToSpeech.LANG_MISSING_DATA || r == TextToSpeech.LANG_NOT_SUPPORTED) {
+                        return;
+                    }
+                    choisirVoixFeminine();
+                    tts.setSpeechRate(0.95f);
+                    ttsPret = true;
+                    if (salutationEnAttente) {
+                        salutationEnAttente = false;
+                        saluer();
+                    }
+                } catch (Exception e) {
+                    // Pas de voix : on reste silencieux.
+                }
+            }
+        });
+
+        if (!dejaSalue) {
+            dejaSalue = true;
+            handler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    if (!prefs.getBoolean("voice_on", true)) {
+                        return;
+                    }
+                    if (ttsPret) {
+                        saluer();
+                    } else {
+                        salutationEnAttente = true;
+                    }
+                }
+            }, DELAI_VOIX);
+        }
+    }
+
+    private String phraseSalutation() {
+        int h = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY);
+        String mot;
+        if (h >= 5 && h < 12) {
+            mot = "Bonjour";
+        } else if (h >= 12 && h < 18) {
+            mot = "Bon après-midi";
+        } else {
+            mot = "Bonsoir";
+        }
+        return mot + " " + PRENOM;
+    }
+
+    private void saluer() {
+        try {
+            Bundle params = new Bundle();
+            float vol = prefs.getInt("voice_vol", 90) / 100f;
+            params.putFloat(TextToSpeech.Engine.KEY_PARAM_VOLUME, vol);
+            tts.speak(phraseSalutation(), TextToSpeech.QUEUE_FLUSH, params, "salut");
+        } catch (Exception e) {
+            // On ignore : la voix est facultative.
+        }
+    }
+
+    private void choisirVoixFeminine() {
+        if (Build.VERSION.SDK_INT < 21) {
+            return;
+        }
+        try {
+            Voice choix = null;
+            for (Voice v : tts.getVoices()) {
+                Locale l = v.getLocale();
+                if (l == null || !"fr".equals(l.getLanguage())) continue;
+                if (v.isNetworkConnectionRequired()) continue;
+                String n = v.getName().toLowerCase(Locale.ROOT);
+                if (n.contains("female") || n.contains("femme")) {
+                    choix = v;
+                    break;
+                }
+                if (choix == null && "FR".equals(l.getCountry())) {
+                    choix = v;
+                }
+            }
+            if (choix != null) {
+                tts.setVoice(choix);
+            }
+        } catch (Exception e) {
+            // On garde la voix par défaut.
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        handler.removeCallbacksAndMessages(null);
+        if (tts != null) {
+            tts.stop();
+            tts.shutdown();
+        }
+        super.onDestroy();
+    }
+
+    // ---------- Mode nuit du système ----------
+
+    private boolean isSystemNight() {
+        int mode = getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK;
+        return mode == Configuration.UI_MODE_NIGHT_YES;
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        final String js = "window.setNight && window.setNight(" + isSystemNight() + ")";
+        web.post(new Runnable() {
+            @Override
+            public void run() {
+                web.evaluateJavascript(js, null);
+            }
+        });
+    }
+
+    @Override
+    public void onBackPressed() {
+        // Écran d'accueil : le bouton retour ne fait rien.
+    }
+
+    // ---------- Localisation (météo) ----------
+
+    private void sendLocation() {
+        try {
+            LocationManager lm = (LocationManager) getSystemService(LOCATION_SERVICE);
+            Location best = null;
+            for (String p : lm.getProviders(true)) {
+                Location l = lm.getLastKnownLocation(p);
+                if (l != null && (best == null || l.getTime() > best.getTime())) {
+                    best = l;
+                }
+            }
+            if (best != null) {
+                final String js = String.format(Locale.US,
+                        "window.setLocation && window.setLocation(%f,%f)",
+                        best.getLatitude(), best.getLongitude());
+                web.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        web.evaluateJavascript(js, null);
+                    }
+                });
+            }
+        } catch (SecurityException e) {
+            // Pas de permission de localisation : la météo reste masquée.
+        } catch (Exception e) {
+            // On ignore : la météo est facultative.
+        }
+    }
+
+    // ---------- Applications ----------
+
+    private List<ResolveInfo> launchables() {
+        Intent main = new Intent(Intent.ACTION_MAIN);
+        main.addCategory(Intent.CATEGORY_LAUNCHER);
+        List<ResolveInfo> list = getPackageManager().queryIntentActivities(main, 0);
+        List<ResolveInfo> out = new ArrayList<ResolveInfo>();
+        for (ResolveInfo ri : list) {
+            if (!getPackageName().equals(ri.activityInfo.packageName)) {
+                out.add(ri);
+            }
+        }
+        return out;
+    }
+
+    private String findByKeywords(String[] kws) {
+        List<ResolveInfo> all = launchables();
+        PackageManager pm = getPackageManager();
+        for (String kw : kws) {
+            String k = kw.trim().toLowerCase(Locale.ROOT);
+            if (k.length() == 0) continue;
+            for (ResolveInfo ri : all) {
+                String label = String.valueOf(ri.loadLabel(pm)).toLowerCase(Locale.ROOT);
+                String pkg = ri.activityInfo.packageName.toLowerCase(Locale.ROOT);
+                if (label.contains(k) || pkg.contains(k)) {
+                    return ri.activityInfo.packageName;
+                }
+            }
+        }
+        return null;
+    }
+
+    private void launchApp(String id, String[] kws) {
+        String pkg = prefs.getString("app_" + id, null);
+        if (pkg == null) {
+            pkg = findByKeywords(kws);
+        }
+        if (pkg == null) {
+            pick(id);
+            return;
+        }
+        launchPackage(pkg, id);
+    }
+
+    private void launchPackage(String pkg, String idPourChoix) {
+        Intent i = getPackageManager().getLaunchIntentForPackage(pkg);
+        if (i == null) {
+            if (idPourChoix != null) {
+                pick(idPourChoix);
+            }
+            return;
+        }
+        try {
+            startActivity(i);
+        } catch (Exception e) {
+            Toast.makeText(this, "Impossible d'ouvrir cette application", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void pick(final String id) {
+        final PackageManager pm = getPackageManager();
+        final List<ResolveInfo> all = launchables();
+        Collections.sort(all, new Comparator<ResolveInfo>() {
+            @Override
+            public int compare(ResolveInfo a, ResolveInfo b) {
+                return String.valueOf(a.loadLabel(pm)).compareToIgnoreCase(String.valueOf(b.loadLabel(pm)));
+            }
+        });
+        final String[] labels = new String[all.size()];
+        final String[] pkgs = new String[all.size()];
+        for (int n = 0; n < all.size(); n++) {
+            labels[n] = String.valueOf(all.get(n).loadLabel(pm));
+            pkgs[n] = all.get(n).activityInfo.packageName;
+        }
+        new AlertDialog.Builder(this)
+                .setTitle("Choisis l'application à ouvrir")
+                .setItems(labels, new android.content.DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(android.content.DialogInterface d, int which) {
+                        prefs.edit().putString("app_" + id, pkgs[which]).apply();
+                        Intent i = pm.getLaunchIntentForPackage(pkgs[which]);
+                        if (i != null) startActivity(i);
+                    }
+                })
+                .setNegativeButton("Annuler", null)
+                .show();
+    }
+
+    private String iconeEnBase64(Drawable d) {
+        try {
+            Bitmap b = Bitmap.createBitmap(96, 96, Bitmap.Config.ARGB_8888);
+            Canvas c = new Canvas(b);
+            d.setBounds(0, 0, 96, 96);
+            d.draw(c);
+            ByteArrayOutputStream bo = new ByteArrayOutputStream();
+            b.compress(Bitmap.CompressFormat.PNG, 100, bo);
+            b.recycle();
+            return "data:image/png;base64," + Base64.encodeToString(bo.toByteArray(), Base64.NO_WRAP);
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    private void envoyerApps() {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    PackageManager pm = getPackageManager();
+                    List<ResolveInfo> list = launchables();
+                    Collections.sort(list, new Comparator<ResolveInfo>() {
+                        @Override
+                        public int compare(ResolveInfo a, ResolveInfo b) {
+                            PackageManager p = getPackageManager();
+                            return String.valueOf(a.loadLabel(p)).compareToIgnoreCase(String.valueOf(b.loadLabel(p)));
+                        }
+                    });
+                    Set<String> vus = new HashSet<String>();
+                    JSONArray arr = new JSONArray();
+                    for (ResolveInfo ri : list) {
+                        String pkg = ri.activityInfo.packageName;
+                        if (!vus.add(pkg)) continue;
+                        JSONObject o = new JSONObject();
+                        o.put("p", pkg);
+                        o.put("l", String.valueOf(ri.loadLabel(pm)));
+                        o.put("i", iconeEnBase64(ri.loadIcon(pm)));
+                        arr.put(o);
+                    }
+                    final String js = "window.setApps && window.setApps(" + arr.toString() + ")";
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            web.evaluateJavascript(js, null);
+                        }
+                    });
+                } catch (Exception e) {
+                    // La liste reste vide.
+                }
+            }
+        }).start();
+    }
+
+    // ---------- ZLink (lecture seule : on ne le modifie jamais) ----------
+
+    private String zlinkPackage() {
+        return findByKeywords(new String[]{"zlink"});
+    }
+
+    private void sendZlink() {
+        final String js = "window.setZlink && window.setZlink(" + (zlinkPackage() != null) + ")";
+        web.post(new Runnable() {
+            @Override
+            public void run() {
+                web.evaluateJavascript(js, null);
+            }
+        });
+    }
+
+    private String zlinkInfo() {
+        String pkg = zlinkPackage();
+        if (pkg == null) {
+            return "ZLink introuvable sur ce poste.";
+        }
+        String version = "inconnue";
+        try {
+            PackageInfo pi = getPackageManager().getPackageInfo(pkg, 0);
+            if (pi.versionName != null) version = pi.versionName;
+        } catch (Exception e) {
+            // version inconnue
+        }
+        return "Paquet : " + pkg + "\nVersion : " + version
+                + "\nAndroid : " + Build.VERSION.RELEASE + " (API " + Build.VERSION.SDK_INT + ")";
+    }
+
+    // ---------- Luminosité, volume, Bluetooth ----------
+
+    private void appliquerLuminosite(int pct) {
+        if (pct < 5) pct = 5;
+        if (pct > 100) pct = 100;
+        try {
+            WindowManager.LayoutParams lp = getWindow().getAttributes();
+            lp.screenBrightness = pct / 100f;
+            getWindow().setAttributes(lp);
+        } catch (Exception e) {
+            // On ignore.
+        }
+        try {
+            if (Build.VERSION.SDK_INT < 23 || Settings.System.canWrite(this)) {
+                Settings.System.putInt(getContentResolver(), Settings.System.SCREEN_BRIGHTNESS_MODE,
+                        Settings.System.SCREEN_BRIGHTNESS_MODE_MANUAL);
+                Settings.System.putInt(getContentResolver(), Settings.System.SCREEN_BRIGHTNESS, pct * 255 / 100);
+            }
+        } catch (Exception e) {
+            // Réglage système refusé : seul le launcher est concerné.
+        }
+    }
+
+    private BluetoothAdapter btAdapter() {
+        try {
+            return BluetoothAdapter.getDefaultAdapter();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private boolean btPermissionOk() {
+        return Build.VERSION.SDK_INT < 31
+                || checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private void ouvrirReglagesBluetooth() {
+        try {
+            startActivity(new Intent(Settings.ACTION_BLUETOOTH_SETTINGS));
+        } catch (Exception e) {
+            Toast.makeText(this, "Réglages Bluetooth introuvables sur ce poste", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void envoyerDock(final String json) {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    PackageManager pm = getPackageManager();
+                    JSONArray in = new JSONArray(json);
+                    JSONArray out = new JSONArray();
+                    for (int n = 0; n < in.length(); n++) {
+                        JSONObject o = in.getJSONObject(n);
+                        String id = o.getString("id");
+                        String pkg = prefs.getString("app_" + id, null);
+                        if (pkg == null) pkg = findByKeywords(o.getString("kw").split(","));
+                        if (pkg == null) continue;
+                        JSONObject r = new JSONObject();
+                        r.put("id", id);
+                        r.put("i", iconeEnBase64(pm.getApplicationIcon(pkg)));
+                        out.put(r);
+                    }
+                    final String js = "window.setDock && window.setDock(" + out.toString() + ")";
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            web.evaluateJavascript(js, null);
+                        }
+                    });
+                } catch (Exception e) {
+                    // Le dock garde ses icônes par défaut.
+                }
+            }
+        }).start();
+    }
+
+    private class Bridge {
+        @JavascriptInterface
+        public void open(final String id, final String keywords) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    launchApp(id, keywords.split(","));
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void choose(final String id) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    pick(id);
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void launchPackage(final String pkg) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    MainActivity.this.launchPackage(pkg, null);
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void requestApps() {
+            envoyerApps();
+        }
+
+        @JavascriptInterface
+        public String getVoice() {
+            return (prefs.getBoolean("voice_on", true) ? "1" : "0") + "," + prefs.getInt("voice_vol", 90);
+        }
+
+        @JavascriptInterface
+        public void setVoice(boolean on, int volume) {
+            prefs.edit().putBoolean("voice_on", on).putInt("voice_vol", volume).apply();
+        }
+
+        @JavascriptInterface
+        public void testVoice() {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    if (ttsPret) {
+                        saluer();
+                    } else {
+                        Toast.makeText(MainActivity.this, "Voix indisponible : installe le français dans la synthèse vocale",
+                                Toast.LENGTH_LONG).show();
+                    }
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void requestDock(String json) {
+            envoyerDock(json);
+        }
+
+        @JavascriptInterface
+        public String getBrightness() {
+            return String.valueOf(prefs.getInt("bright", 80));
+        }
+
+        @JavascriptInterface
+        public void setBrightness(final int pct) {
+            prefs.edit().putInt("bright", pct).apply();
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    appliquerLuminosite(pct);
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public boolean canWrite() {
+            return Build.VERSION.SDK_INT < 23 || Settings.System.canWrite(MainActivity.this);
+        }
+
+        @JavascriptInterface
+        public void requestWrite() {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        Intent i = new Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS,
+                                Uri.parse("package:" + getPackageName()));
+                        startActivity(i);
+                    } catch (Exception e) {
+                        Toast.makeText(MainActivity.this, "Réglage indisponible sur ce poste", Toast.LENGTH_SHORT).show();
+                    }
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public int getVolume() {
+            try {
+                AudioManager am = (AudioManager) getSystemService(AUDIO_SERVICE);
+                int max = am.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
+                return max <= 0 ? 50 : am.getStreamVolume(AudioManager.STREAM_MUSIC) * 100 / max;
+            } catch (Exception e) {
+                return 50;
+            }
+        }
+
+        @JavascriptInterface
+        public void setVolume(int pct) {
+            try {
+                AudioManager am = (AudioManager) getSystemService(AUDIO_SERVICE);
+                int max = am.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
+                am.setStreamVolume(AudioManager.STREAM_MUSIC, Math.round(max * pct / 100f), 0);
+            } catch (Exception e) {
+                // Volume géré par le boîtier du poste : on ignore.
+            }
+        }
+
+        @JavascriptInterface
+        public String btState() {
+            BluetoothAdapter a = btAdapter();
+            if (a == null) return "na";
+            try {
+                return a.isEnabled() ? "on" : "off";
+            } catch (Exception e) {
+                return "na";
+            }
+        }
+
+        @JavascriptInterface
+        public String btDevices() {
+            JSONArray arr = new JSONArray();
+            try {
+                BluetoothAdapter a = btAdapter();
+                if (a != null && btPermissionOk()) {
+                    for (BluetoothDevice d : a.getBondedDevices()) {
+                        String n = d.getName();
+                        if (n != null) arr.put(n);
+                    }
+                }
+            } catch (Exception e) {
+                // Liste vide.
+            }
+            return arr.toString();
+        }
+
+        @JavascriptInterface
+        @SuppressWarnings("deprecation")
+        public void btSet(final boolean on) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    BluetoothAdapter a = btAdapter();
+                    if (a == null) return;
+                    try {
+                        if (Build.VERSION.SDK_INT >= 33 || !btPermissionOk()) {
+                            // Android 13+ n'autorise plus une appli à le faire : on ouvre les réglages.
+                            ouvrirReglagesBluetooth();
+                        } else if (on) {
+                            a.enable();
+                        } else {
+                            a.disable();
+                        }
+                    } catch (Exception e) {
+                        ouvrirReglagesBluetooth();
+                    }
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void btSettings() {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    ouvrirReglagesBluetooth();
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public String zlinkInfo() {
+            return MainActivity.this.zlinkInfo();
+        }
+    }
+}

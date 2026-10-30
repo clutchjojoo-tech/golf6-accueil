@@ -1,0 +1,564 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Accueil Golf 6</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000}
+body{font-family:-apple-system,'SF Pro Display','Helvetica Neue',Roboto,Arial,sans-serif;color:#f4f7ff}
+button{font:inherit;color:inherit;border:0;padding:0;margin:0;background:none;text-align:left}
+
+#stage{--glass:linear-gradient(160deg,rgba(48,66,104,.58),rgba(18,26,44,.72));--stroke:rgba(150,180,255,.2);--sub:rgba(220,230,255,.66);--blue:#2f6df6;--ic:#a9b8dc;
+  position:absolute;left:50%;top:50%;width:1024px;height:600px;margin-left:-512px;margin-top:-300px;transform-origin:center center;overflow:hidden;background:#0a1020}
+#stage.reduced *{transition:none!important;animation:none!important}
+button:active{transform:scale(.97)}
+
+/* Barre latérale */
+#rail{position:absolute;left:0;top:0;width:88px;height:100%;z-index:20;background:rgba(8,12,24,.8);border-right:1px solid var(--stroke);display:flex;flex-direction:column;align-items:center;padding-top:22px;gap:8px}
+#logo{width:58px;height:58px;display:flex;align-items:center;justify-content:center;margin-bottom:14px}
+#logo img{width:50px;height:auto;display:block}
+.rb{width:56px;height:56px;border-radius:18px;display:flex;align-items:center;justify-content:center;color:var(--ic)}
+.rb.on{background:var(--blue);color:#fff}
+.rb svg{width:27px;height:27px}
+
+/* Pages */
+.page{position:absolute;left:88px;top:0;width:936px;height:100%;opacity:0;visibility:hidden;transform:translateY(10px);transition:opacity .28s,transform .28s,visibility 0s .28s}
+.page.active{opacity:1;visibility:visible;transform:none;transition:opacity .28s,transform .28s}
+.bgblur{position:absolute;left:-88px;top:0;width:1024px;height:600px;object-fit:cover}
+.tint{position:absolute;left:-88px;top:0;width:1024px;height:600px;background:linear-gradient(180deg,rgba(9,15,32,.84),rgba(8,12,24,.9))}
+.hdr{position:absolute;left:28px;top:16px;display:flex;align-items:baseline;gap:14px}
+.t1{font-size:34px;font-weight:600;letter-spacing:-.5px}
+.d1{font-size:16px;color:var(--sub)}
+
+.card{background:var(--glass);border:1px solid var(--stroke);border-radius:24px}
+.lab{font-size:12px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--sub)}
+.muted{font-size:15px;color:var(--sub);line-height:1.35}
+
+/* Couverture */
+#p-cover{left:0;width:1024px}
+.bgfull{position:absolute;left:0;top:0;width:1024px;height:600px;object-fit:cover}
+.fade{transition:opacity .7s}
+.scrim{position:absolute;left:0;right:0;pointer-events:none}
+.scrimT{top:0;height:210px;background:linear-gradient(180deg,rgba(0,0,0,.55),rgba(0,0,0,0))}
+.scrimB{bottom:0;height:200px;background:linear-gradient(0deg,rgba(0,0,0,.72),rgba(0,0,0,0))}
+.tm{font-size:76px;font-weight:200;letter-spacing:-2px;line-height:1;text-shadow:0 2px 14px rgba(0,0,0,.45)}
+.dt{font-size:22px;color:rgba(255,255,255,.88);margin-top:6px;text-shadow:0 1px 8px rgba(0,0,0,.5)}
+.cClock{position:absolute;left:128px;top:34px}
+.cWx{position:absolute;right:36px;top:40px;display:flex;align-items:center;gap:14px;padding:12px 20px;border-radius:24px;background:rgba(10,12,18,.45);border:1px solid rgba(255,255,255,.16)}
+.cWx .tp{font-size:34px;font-weight:300}
+.cWx .tx{font-size:15px;color:rgba(255,255,255,.75);max-width:140px}
+.cName{position:absolute;left:128px;bottom:40px}
+.n1{font-size:24px;font-weight:600;letter-spacing:6px}
+.n2{font-size:16px;color:rgba(255,255,255,.7);letter-spacing:3px;margin-top:2px}
+.slide{position:absolute;left:366px;bottom:34px;width:380px;height:64px;border-radius:32px;background:rgba(14,18,28,.55);border:1px solid rgba(255,255,255,.2);overflow:hidden}
+.slide .stxt{position:absolute;left:70px;right:12px;top:0;height:62px;display:flex;align-items:center;justify-content:center;font-size:17px;color:rgba(255,255,255,.88)}
+.knob{position:absolute;left:4px;top:4px;width:54px;height:54px;border-radius:27px;background:#fff;color:#101624;display:flex;align-items:center;justify-content:center;touch-action:none}
+.round{width:64px;height:64px;border-radius:32px;background:rgba(14,18,28,.6);border:1px solid rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;color:#fff}
+.round svg{width:30px;height:30px}
+.lt-btn.on{background:rgba(255,236,170,.3);border-color:rgba(255,236,170,.9);color:#fff6cf}
+#lightsCover{position:absolute;right:36px;bottom:36px}
+
+/* Tableau de bord */
+.dashRow{position:absolute;left:28px;right:28px;top:72px;height:268px;display:flex;gap:18px}
+.cpBig{flex:1.9;position:relative;overflow:hidden;padding:26px 30px;display:flex;flex-direction:column;border-color:rgba(70,224,122,.4)}
+.cpBig .glow{position:absolute;left:-60px;top:-90px;width:420px;height:420px;border-radius:50%;background:radial-gradient(closest-side,rgba(60,220,120,.3),rgba(60,220,120,0))}
+.cpBig .row1{position:relative;display:flex;align-items:center;gap:26px;margin-top:8px}
+.cpIco{width:112px;height:112px;border-radius:30px;background:linear-gradient(160deg,#5ee08a,#1fb24d);box-shadow:0 10px 22px rgba(48,209,88,.35);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.cpBig .ttl{font-size:46px;font-weight:600;letter-spacing:-1.4px;line-height:1}
+.cpBig .sb{font-size:17px;color:var(--sub);margin-top:8px}
+.cpBtn{position:relative;margin-top:auto;height:60px;border-radius:20px;background:linear-gradient(160deg,#4fd97f,#1fa94a);display:flex;align-items:center;justify-content:center;gap:10px;font-size:20px;font-weight:600}
+.vCard{flex:1;padding:20px 22px;display:flex;flex-direction:column;position:relative}
+.vCard .vt{font-size:19px;font-weight:600;letter-spacing:-.4px}
+.vCard .vs{font-size:14px;color:var(--sub);margin-top:2px}
+.vThumb{position:absolute;right:14px;top:14px;width:142px;height:83px;border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,.18)}
+.vThumb img{position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover}
+.stat{display:flex;align-items:center;gap:14px;padding:5px 0}
+.stat .si{width:36px;height:36px;color:var(--ic);flex-shrink:0}
+.stat .sv{font-size:17px;font-weight:600}
+.stat .sl{font-size:12px;color:var(--sub)}
+.bar{height:6px;border-radius:3px;background:rgba(255,255,255,.14);margin-top:6px;width:100%}
+.stat .mid{flex:1;min-width:0}
+.vCard .stats{margin-top:auto}
+.dockP{position:absolute;left:28px;right:28px;top:358px;height:196px;padding:16px 14px;display:flex;justify-content:space-around;align-items:center}
+.dk{display:flex;flex-direction:column;align-items:center;gap:10px;width:96px;font-size:16px}
+.dk .di{width:78px;height:78px;border-radius:21px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.dk .di img{width:78px;height:78px;border-radius:21px}
+.dk .di svg{width:40px;height:40px}
+
+/* Applications */
+.panel{position:absolute;left:28px;right:28px;top:72px;bottom:20px;padding:20px 18px}
+#appsGrid{position:absolute;left:18px;right:18px;top:18px;bottom:12px;overflow-y:auto;-webkit-overflow-scrolling:touch;display:grid;grid-template-columns:repeat(6,1fr);gap:18px 10px;align-content:start}
+.ap{display:flex;flex-direction:column;align-items:center;gap:8px;height:108px}
+.ap img,.ap .ph{width:68px;height:68px;border-radius:18px;background:rgba(255,255,255,.1)}
+.ap .ph{display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:600}
+.ap .nm{font-size:13px;text-align:center;max-width:125px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+
+/* Menu */
+.sub{position:absolute;left:28px;top:72px;bottom:20px;width:176px;padding:12px}
+.si2{display:flex;align-items:center;gap:12px;height:52px;padding:0 12px;border-radius:14px;font-size:17px;color:rgba(235,242,255,.86)}
+.si2 svg{width:22px;height:22px;flex-shrink:0;color:var(--ic)}
+.si2.on{background:var(--blue);color:#fff}
+.si2.on svg{color:#fff}
+.sec{position:absolute;left:220px;right:28px;top:72px;bottom:20px;display:none}
+.sec.on{display:block}
+.vTop{position:absolute;left:0;right:0;top:0;height:330px}
+.carC{position:absolute;left:0;top:0;width:440px;height:330px;overflow:hidden}
+.carC img{position:absolute;left:0;top:0;width:440px;height:258px;object-fit:cover}
+.carC .strip{position:absolute;left:0;right:0;top:258px;bottom:0;background:rgba(8,12,24,.5)}
+.carC .shade{position:absolute;left:0;top:0;right:0;height:120px;background:linear-gradient(180deg,rgba(0,0,0,.6),rgba(0,0,0,0))}
+.carC .ct{position:absolute;left:18px;top:268px}
+.carC .ct b{font-size:20px!important;display:inline!important}
+.carC .ct span{font-size:14px!important;margin-left:8px}
+.carC .ct b{font-size:26px;font-weight:600;letter-spacing:-.5px;display:block}
+.carC .ct span{font-size:15px;color:rgba(255,255,255,.8)}
+#lightsVeh{position:absolute;right:12px;top:266px;height:50px;padding:0 18px 0 12px;border-radius:25px;background:rgba(14,18,28,.62);border:1px solid rgba(255,255,255,.22);display:flex;align-items:center;gap:12px;font-size:16px;color:#fff}
+#lightsVeh svg{width:28px;height:28px}
+.stCol{position:absolute;left:456px;right:0;top:0;height:330px;display:flex;flex-direction:column;gap:12px}
+.stCol .card{flex:1;padding:0 18px;display:flex;align-items:center}
+.vBot{position:absolute;left:0;right:0;top:346px;height:110px;display:flex;gap:12px}
+.vBot .card{flex:1;padding:0 18px;display:flex;align-items:center;gap:14px}
+.vBot svg{width:38px;height:38px;color:var(--ic);flex-shrink:0}
+.vBot .l{font-size:14px;color:var(--sub)}
+.vBot .v{font-size:19px;font-weight:600;margin-top:2px}
+.note{position:absolute;left:0;right:0;bottom:0;font-size:13px;color:var(--sub)}
+.rows{position:absolute;left:0;right:0;top:0;bottom:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:20px}
+.sr{display:flex;align-items:center;justify-content:space-between;gap:20px;min-height:66px;padding:10px 20px;margin-bottom:10px;border-radius:20px;background:var(--glass);border:1px solid var(--stroke)}
+.sr .l{font-size:18px}
+.sr .l small{display:block;font-size:13px;color:var(--sub);margin-top:2px}
+.sw{width:64px;height:36px;border-radius:18px;background:rgba(255,255,255,.22);position:relative;flex-shrink:0}
+.sw::after{content:'';position:absolute;left:3px;top:3px;width:30px;height:30px;border-radius:15px;background:#fff;transition:transform .2s}
+.sw.on{background:#34c759}
+.sw.on::after{transform:translateX(28px)}
+.seg{display:flex;background:rgba(255,255,255,.1);border-radius:14px;padding:3px;flex-shrink:0}
+.seg button{padding:10px 15px;border-radius:11px;font-size:15px;color:rgba(255,255,255,.75)}
+.seg button.on{background:rgba(255,255,255,.92);color:#101218}
+input[type=range]{width:250px;height:40px;-webkit-appearance:none;background:transparent;flex-shrink:0}
+input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:3px;background:rgba(255,255,255,.25)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:32px;height:32px;border-radius:16px;background:#fff;margin-top:-13px}
+.mini{height:46px;padding:0 18px;border-radius:14px;background:rgba(255,255,255,.14);border:1px solid var(--stroke);font-size:16px;display:flex;align-items:center;flex-shrink:0}
+.txt{white-space:pre-line;font-size:14px;color:var(--sub);margin:-2px 8px 12px;display:none}
+.ok{color:#57e08a!important}
+
+#dim{position:absolute;left:0;top:0;width:100%;height:100%;background:#000;opacity:0;pointer-events:none;transition:opacity .6s;z-index:40}
+
+/* Démarrage : photo de face, les phares clignotent */
+#splash{position:absolute;left:0;top:0;width:100%;height:100%;z-index:60;background:#090c12;animation:splashOut .8s ease 3.9s forwards}
+#splash img{position:absolute;left:0;top:0;width:1024px;height:600px;display:block}
+#splash .sOn{opacity:0;animation:blink 3.4s linear .3s forwards}
+#splash .sh{position:absolute;left:0;right:0;bottom:0;height:260px;background:linear-gradient(0deg,rgba(0,0,0,.88),rgba(0,0,0,.45) 55%,rgba(0,0,0,0))}
+#splash .name{position:absolute;left:0;right:0;bottom:62px;text-align:center;font-family:'Roboto','Helvetica Neue',Arial,sans-serif;font-size:58px;font-weight:700;line-height:1;letter-spacing:22px;text-indent:22px;color:#fff;background:linear-gradient(180deg,#ffffff 20%,#c9d3e6 55%,#8c9ab5 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 3px 10px rgba(0,0,0,.7));opacity:0;transform:translateY(10px);animation:nameIn 1s ease 1.6s forwards}
+#splash .sub2{position:absolute;left:50%;bottom:22px;margin-left:-62px;width:124px;height:28px;line-height:26px;text-align:center;font-size:15px;font-weight:600;letter-spacing:6px;text-indent:6px;color:#e8eefc;border:1px solid rgba(255,255,255,.4);border-radius:14px;background:rgba(10,14,24,.5);opacity:0;animation:fadeIn 1s ease 2s forwards}
+#stage.reduced #splash{display:none}
+@keyframes blink{0%,8%{opacity:0}9%,22%{opacity:1}23%,32%{opacity:0}33%,46%{opacity:1}47%,56%{opacity:0}57%,100%{opacity:1}}
+@keyframes nameIn{to{opacity:1;transform:none}}
+@keyframes fadeIn{to{opacity:1}}
+@keyframes splashOut{to{opacity:0;visibility:hidden}}
+</style>
+</head>
+<body>
+<div id="stage">
+
+<!-- Barre latérale -->
+<nav id="rail">
+<button id="logo" data-go="cover" aria-label="Écran d'accueil"><img src="vw_logo.png" alt="Volkswagen"></button>
+<button class="rb on" data-go="dash" aria-label="Accueil"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-7 8 7"/><path d="M6 10v9h12v-9"/></svg></button>
+<button class="rb" data-id="nav" data-kw="zlink,carplay,carlink" aria-label="Navigation"><svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"><path d="M12 3l8 18-8-4.5L4 21z"/></svg></button>
+<button class="rb" data-id="music" data-kw="music,musique,spotify,deezer,player" aria-label="Musique"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/></svg></button>
+<button class="rb" data-id="phone" data-kw="phone,téléphone,telephone,dialer,appel" aria-label="Téléphone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.6 3.5h3l1.3 4-2 1.3a11 11 0 0 0 5.3 5.3l1.3-2 4 1.3v3a2 2 0 0 1-2.2 2A16 16 0 0 1 4.6 5.7a2 2 0 0 1 2-2.2z"/></svg></button>
+<button class="rb" data-go="menu" aria-label="Menu"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="7" height="7" rx="2"/><rect x="13" y="4" width="7" height="7" rx="2"/><rect x="4" y="13" width="7" height="7" rx="2"/><rect x="13" y="13" width="7" height="7" rx="2"/></svg></button>
+<button class="rb" data-go="menu:system" aria-label="Réglages"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg></button>
+</nav>
+
+<!-- ÉCRAN D'ACCUEIL (couverture) -->
+<section id="p-cover" class="page active">
+<img class="bgfull" src="accueil_off.jpg" alt="">
+<img class="bgfull fade lt-on" src="accueil_on.jpg" alt="Golf 6" style="opacity:0">
+<div class="scrim scrimT"></div><div class="scrim scrimB"></div>
+<div class="cClock"><div class="tm">--:--</div><div class="dt"></div></div>
+<div class="cWx" id="wxChip" style="display:none"><div class="tp" id="wxTemp">–°</div><div class="tx" id="wxText"></div></div>
+<div class="cName"><div class="n1">GOLF 6</div><div class="n2">TDI 105</div></div>
+<div class="slide" id="slide"><div class="stxt">Faites glisser pour démarrer</div>
+<div class="knob" id="knob" aria-label="Démarrer"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></div></div>
+<button class="round lt-btn" id="lightsCover" aria-label="Allumer ou éteindre les feux sur l'écran"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 5c-3 0-5 3.2-5 7s2 7 5 7h2V5z"/><path d="M16 7h5M16 12h5M16 17h5"/></svg></button>
+</section>
+
+<!-- TABLEAU DE BORD (accueil) -->
+<section id="p-dash" class="page">
+<img class="bgblur" src="fond_flou.jpg" alt=""><div class="tint"></div>
+<div class="hdr"><div class="t1">--:--</div><div class="d1"></div></div>
+<div class="dashRow">
+<div class="card cpBig" data-id="carplay" data-kw="zlink,carplay,carlink" role="button" aria-label="Ouvrir CarPlay">
+<div class="glow"></div>
+<div class="row1">
+<div class="cpIco"><svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 16l1.2-5.2A2 2 0 0 1 8.1 9.3h7.8a2 2 0 0 1 1.9 1.5L19 16"/><path d="M3.5 16h17v3h-17z"/></svg></div>
+<div><div class="ttl">CarPlay</div><div class="sb" id="zState">Waze et musique de ton iPhone</div></div>
+</div>
+<div class="cpBtn">Ouvrir CarPlay<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></div>
+</div>
+<div class="card vCard" id="vCardDash" role="button" aria-label="Voir le véhicule">
+<div class="vt">Ma Golf 6</div><div class="vs">TDI 105</div>
+<div class="vThumb"><img src="vehicule_off.jpg" alt=""><img class="fade lt-on" src="vehicule_on.jpg" alt="" style="opacity:0"></div>
+<div class="stats">
+<div class="stat"><svg class="si" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v15"/><path d="M4 20h12"/><path d="M15 9h2.5a1.5 1.5 0 0 1 1.5 1.5V16a1.5 1.5 0 0 0 3 0V9l-2.5-2.5"/><path d="M7.5 7h5"/></svg><div class="mid"><div class="sv">Indisponible</div><div class="bar"></div></div></div>
+<div class="stat"><svg class="si" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="12" rx="2"/><path d="M7 7V5h3v2M14 7V5h3v2"/><path d="M8 13h3M9.5 11.5v3M14.5 13h2.5"/></svg><div class="mid"><div class="sv">Indisponible</div><div class="bar"></div></div></div>
+<div class="stat"><svg class="si" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14.5V5a2 2 0 0 1 4 0v9.5a4 4 0 1 1-4 0z"/><path d="M12 8v8"/></svg><div class="mid"><div class="sv">Indisponible</div><div class="bar"></div></div></div>
+</div>
+</div>
+</div>
+<div class="card dockP" id="dock"></div>
+</section>
+
+<!-- APPLICATIONS -->
+<section id="p-apps" class="page">
+<img class="bgblur" src="fond_flou.jpg" alt=""><div class="tint"></div>
+<div class="hdr"><div class="t1">--:--</div><div class="d1"></div></div>
+<div class="card panel"><div id="appsGrid"></div></div>
+</section>
+
+<!-- MENU : véhicule, navigation, audio, écran, bluetooth, système -->
+<section id="p-menu" class="page">
+<img class="bgblur" src="fond_flou.jpg" alt=""><div class="tint"></div>
+<div class="hdr"><div class="t1">--:--</div><div class="d1"></div></div>
+
+<div class="card sub">
+<button class="si2 on" data-sec="vehicle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 16l1.2-5.2A2 2 0 0 1 8.1 9.3h7.8a2 2 0 0 1 1.9 1.5L19 16"/><path d="M3.5 16h17v3h-17z"/></svg>Véhicule</button>
+<button class="si2" data-sec="nav"><svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"><path d="M12 3l8 18-8-4.5L4 21z"/></svg>Navigation</button>
+<button class="si2" data-sec="audio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/></svg>Audio</button>
+<button class="si2" data-sec="screen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M9 20h6M12 16v4"/></svg>Écran</button>
+<button class="si2" data-sec="bt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7l10 10-5 4V3l5 4L7 17"/></svg>Bluetooth</button>
+<button class="si2" data-go="apps"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="7" height="7" rx="2"/><rect x="13" y="4" width="7" height="7" rx="2"/><rect x="4" y="13" width="7" height="7" rx="2"/><rect x="13" y="13" width="7" height="7" rx="2"/></svg>Applications</button>
+<button class="si2" data-sec="system"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg>Système</button>
+</div>
+
+<!-- Véhicule -->
+<div class="sec on" id="sec-vehicle">
+<div class="vTop">
+<div class="card carC">
+<img src="accueil_off.jpg" alt="Golf 6"><img class="fade lt-on" src="accueil_on.jpg" alt="" style="opacity:0">
+<div class="shade"></div><div class="strip"></div>
+<div class="ct"><b>Ma Golf 6</b><span>TDI 105</span></div>
+<button id="lightsVeh" class="lt-btn" aria-label="Feux"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 5c-3 0-5 3.2-5 7s2 7 5 7h2V5z"/><path d="M16 7h5M16 12h5M16 17h5"/></svg><span id="lightsTxt">Allumer les feux</span></button>
+</div>
+<div class="stCol">
+<div class="card"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#a9b8dc" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-right:14px"><path d="M5 20V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v15"/><path d="M4 20h12"/><path d="M15 9h2.5a1.5 1.5 0 0 1 1.5 1.5V16a1.5 1.5 0 0 0 3 0V9l-2.5-2.5"/><path d="M7.5 7h5"/></svg><div style="flex:1"><div class="l muted" style="font-size:14px">Carburant</div><div style="font-size:19px;font-weight:600">Indisponible</div><div class="bar"></div></div></div>
+<div class="card"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#a9b8dc" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-right:14px"><rect x="3" y="7" width="18" height="12" rx="2"/><path d="M7 7V5h3v2M14 7V5h3v2"/><path d="M8 13h3M9.5 11.5v3M14.5 13h2.5"/></svg><div style="flex:1"><div class="l muted" style="font-size:14px">Batterie</div><div style="font-size:19px;font-weight:600">Indisponible</div><div class="bar"></div></div></div>
+<div class="card"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#a9b8dc" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-right:14px"><path d="M10 14.5V5a2 2 0 0 1 4 0v9.5a4 4 0 1 1-4 0z"/><path d="M12 8v8"/></svg><div style="flex:1"><div class="l muted" style="font-size:14px">Température moteur</div><div style="font-size:19px;font-weight:600">Indisponible</div><div class="bar"></div></div></div>
+</div>
+</div>
+<div class="vBot">
+<div class="card"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18"/></svg><div><div class="l">Pression pneus</div><div class="v">Indisponible</div></div></div>
+<div class="card"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3L5 21M16 3l3 18M12 4v3M12 10v4M12 17v3"/></svg><div><div class="l">Trajets</div><div class="v">Indisponible</div></div></div>
+<div class="card"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v15"/><path d="M4 20h12"/><path d="M15 9h2.5a1.5 1.5 0 0 1 1.5 1.5V16a1.5 1.5 0 0 0 3 0V9l-2.5-2.5"/></svg><div><div class="l">Conso. moyenne</div><div class="v">Indisponible</div></div></div>
+</div>
+<div class="note">Les valeurs s'affichent seulement si le poste les transmet : rien n'est inventé.</div>
+</div>
+
+<!-- Navigation -->
+<div class="sec" id="sec-nav"><div class="rows">
+<div class="sr"><div class="l">Navigation<small>Waze sur ton iPhone, via CarPlay (ZLink)</small></div><button class="mini" data-id="carplay" data-kw="zlink,carplay,carlink">Ouvrir CarPlay</button></div>
+<div class="sr"><div class="l">État de ZLink</div><div id="zState2" class="muted">…</div></div>
+</div></div>
+
+<!-- Audio -->
+<div class="sec" id="sec-audio"><div class="rows">
+<div class="sr"><div class="l">Volume du poste<small>Peut ne pas agir si le volume dépend du boîtier du poste</small></div><input type="range" id="volMedia" min="0" max="100" step="5" value="50"></div>
+<div class="sr"><div class="l">Message vocal au démarrage<small>« Bonjour / Bon après-midi / Bonsoir Jonathan »</small></div><button class="sw" id="swVoice" aria-label="Activer le message vocal"></button></div>
+<div class="sr"><div class="l">Volume de la voix</div><input type="range" id="volVoice" min="10" max="100" step="5" value="90"></div>
+<div class="sr"><div class="l">Tester la voix</div><button class="mini" id="testVoice">Écouter</button></div>
+</div></div>
+
+<!-- Écran -->
+<div class="sec" id="sec-screen"><div class="rows">
+<div class="sr"><div class="l">Luminosité<small id="brightNote">Réglage de l'écran du launcher</small></div><input type="range" id="brightRange" min="5" max="100" step="5" value="80"></div>
+<div class="sr" id="rowWrite" style="display:none"><div class="l">Luminosité de tout le poste<small>Autorise-le une seule fois pour que le réglage s'applique aussi dans CarPlay</small></div><button class="mini" id="btnWrite">Autoriser</button></div>
+<div class="sr"><div class="l">Feux sur l'image<small>Sur le poste seulement</small></div><div class="seg" data-seg="lights"><button data-val="0">Éteints</button><button data-val="1">Allumés</button></div></div>
+<div class="sr"><div class="l">Luminosité de l'interface</div><div class="seg" data-seg="mode"><button data-val="auto">Auto</button><button data-val="day">Jour</button><button data-val="night">Nuit</button></div></div>
+<div class="sr"><div class="l">Animations</div><div class="seg" data-seg="anim"><button data-val="full">Complètes</button><button data-val="reduced">Réduites</button></div></div>
+</div></div>
+
+<!-- Bluetooth -->
+<div class="sec" id="sec-bt"><div class="rows">
+<div class="sr"><div class="l">Bluetooth<small id="btState">Vérification…</small></div><button class="sw" id="swBt" aria-label="Activer ou couper le Bluetooth" style="display:none"></button></div>
+<div class="sr"><div class="l">Appareils associés<small id="btList">—</small></div></div>
+<div class="sr"><div class="l">Associer ou gérer un appareil<small>Ouvre les réglages Bluetooth du poste</small></div><button class="mini" id="btOpen">Ouvrir</button></div>
+</div></div>
+
+<!-- Système -->
+<div class="sec" id="sec-system"><div class="rows">
+<div class="sr"><div class="l">Diagnostic ZLink<small>Version et informations du système</small></div><button class="mini" id="zdiag">Afficher</button></div>
+<div class="txt" id="zinfo"></div>
+<div class="sr"><div class="l">Accueil par défaut<small>Réglages Android &gt; Applis &gt; Applis par défaut &gt; Application d'accueil</small></div></div>
+<div class="sr"><div class="l">Appui long sur un raccourci<small>Change l'application qu'il ouvre</small></div></div>
+</div></div>
+</section>
+
+<div id="dim"></div>
+
+<div id="splash">
+<img src="splash_off.jpg" alt="Golf 6">
+<img class="sOn" src="splash_on.jpg" alt="">
+<div class="sh"></div>
+<div class="name">GOLF 6</div>
+<div class="sub2">TDI 105</div>
+</div>
+</div>
+
+<script>
+(function(){
+  var A=window.Android||null;
+  var stage=document.getElementById('stage');
+  function $(s){return document.querySelector(s)}
+  function $$(s){return Array.prototype.slice.call(document.querySelectorAll(s))}
+  function get(k,d){try{var v=localStorage.getItem(k);return v===null?d:v}catch(e){return d}}
+  function put(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+  function call(fn,def){try{return fn()}catch(e){return def}}
+
+  function fit(){stage.style.transform='scale('+Math.min(window.innerWidth/1024,window.innerHeight/600)+')'}
+  window.addEventListener('resize',fit);fit();
+
+  /* Heure et date */
+  function pad(n){return n<10?'0'+n:''+n}
+  function tick(){
+    var d=new Date(),t=pad(d.getHours())+':'+pad(d.getMinutes());
+    var ds=d.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
+    ds=ds.charAt(0).toUpperCase()+ds.slice(1);
+    $$('.tm,.t1').forEach(function(e){e.textContent=t});
+    $$('.dt,.d1').forEach(function(e){e.textContent=ds});
+  }
+  tick();setInterval(tick,10000);
+
+  /* Navigation entre pages */
+  var appsAsked=false,dockAsked=false;
+  function showSection(id){
+    $$('.sec').forEach(function(s){s.classList.toggle('on',s.id==='sec-'+id)});
+    $$('.si2[data-sec]').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-sec')===id)});
+    if(id==='bt')refreshBt();
+    if(id==='screen')refreshWrite();
+  }
+  function go(target){
+    var parts=target.split(':'),name=parts[0],sec=parts[1];
+    $$('.page').forEach(function(p){p.classList.toggle('active',p.id==='p-'+name)});
+    var railKey=name==='cover'?'cover':(name==='dash'?'dash':(name==='menu'?(sec==='system'?'menu:system':'menu'):(name==='apps'?'menu':'')));
+    $$('#rail .rb[data-go]').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-go')===railKey)});
+    if(name==='menu')showSection(sec||'vehicle');
+    if(name==='apps'&&!appsAsked){appsAsked=true;if(A){A.requestApps()}else{demoApps()}}
+  }
+  $$('[data-go]').forEach(function(b){b.addEventListener('click',function(){go(b.getAttribute('data-go'))})});
+  $$('.si2[data-sec]').forEach(function(b){b.addEventListener('click',function(){showSection(b.getAttribute('data-sec'))})});
+  $('#vCardDash').addEventListener('click',function(){go('menu:vehicle')});
+
+  /* Raccourcis d'applications (appui long = changer l'appli) */
+  var timer=null,longFired=false;
+  function bindApp(el){
+    var id=el.getAttribute('data-id');
+    var idc=id==='nav'?'carplay':id;
+    function start(){longFired=false;timer=setTimeout(function(){longFired=true;if(A)A.choose(idc)},800)}
+    function end(){if(timer){clearTimeout(timer);timer=null}}
+    el.addEventListener('pointerdown',start);
+    el.addEventListener('pointerleave',end);
+    el.addEventListener('pointercancel',end);
+    el.addEventListener('pointerup',function(){end();if(!longFired&&A)A.open(idc,el.getAttribute('data-kw'))});
+  }
+  $$('[data-id]').forEach(bindApp);
+
+  /* Barre d'applications (icônes réelles des applis installées) */
+  var DOCK=[
+    {id:'carplay',kw:'zlink,carplay,carlink',label:'CarPlay',always:true,bg:'linear-gradient(160deg,#5ee08a,#1fb24d)',g:'<path d="M5 16l1.2-5.2A2 2 0 0 1 8.1 9.3h7.8a2 2 0 0 1 1.9 1.5L19 16"/><path d="M3.5 16h17v3h-17z"/>'},
+    {id:'maps',kw:'maps',label:'Maps',bg:'linear-gradient(160deg,#6ed39a,#2f9bf0)',g:'<path d="M12 21s6-5.2 6-10a6 6 0 0 0-12 0c0 4.8 6 10 6 10z"/><circle cx="12" cy="11" r="2.2"/>'},
+    {id:'youtube',kw:'youtube',label:'YouTube',bg:'linear-gradient(160deg,#ff5a5a,#d71e1e)',g:'<path d="M9.5 8.5v7l6-3.5z" fill="#fff"/>'},
+    {id:'netflix',kw:'netflix',label:'Netflix',bg:'linear-gradient(160deg,#2a2a2a,#0a0a0a)',g:'<rect x="4" y="5" width="16" height="14" rx="2"/><path d="M8 5v14M16 5v14M4 9h4M4 15h4M16 9h4M16 15h4"/>'},
+    {id:'disney',kw:'disney',label:'Disney+',bg:'linear-gradient(160deg,#4d7bff,#1b3fb8)',g:'<path d="M12 4l2.4 5 5.6.7-4.1 3.9 1 5.5-4.9-2.7-4.9 2.7 1-5.5L4 9.7 9.6 9z"/>'},
+    {id:'music',kw:'music,musique,spotify,deezer,player',label:'Musique',bg:'linear-gradient(160deg,#ff7aa8,#c040e0)',g:'<path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/>'},
+    {id:'phone',kw:'phone,téléphone,telephone,dialer,appel',label:'Téléphone',bg:'linear-gradient(160deg,#5ee08a,#1fb24d)',g:'<path d="M6.6 3.5h3l1.3 4-2 1.3a11 11 0 0 0 5.3 5.3l1.3-2 4 1.3v3a2 2 0 0 1-2.2 2A16 16 0 0 1 4.6 5.7a2 2 0 0 1 2-2.2z"/>'},
+    {id:'apps',kw:'',label:'Applications',always:true,go:'apps',bg:'linear-gradient(160deg,#5b6a8c,#38445f)',g:'<rect x="4" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.8"/>'}
+  ];
+  var dockIcons={};
+  function renderDock(){
+    var d=$('#dock');d.innerHTML='';
+    DOCK.forEach(function(s){
+      var have=!A||dockIcons[s.id]||s.always;
+      if(!have)return;
+      var b=document.createElement('button');b.className='dk';
+      var ic=document.createElement('div');ic.className='di';
+      var real=dockIcons[s.id]&&s.id!=='carplay'&&s.id!=='apps';
+      if(real){var im=document.createElement('img');im.src=dockIcons[s.id];im.alt='';ic.appendChild(im)}
+      else{ic.style.background=s.bg;ic.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">'+s.g+'</svg>'}
+      var lb=document.createElement('div');lb.textContent=s.label;
+      b.appendChild(ic);b.appendChild(lb);
+      if(s.go){b.addEventListener('click',function(){go(s.go)})}
+      else{b.setAttribute('data-id',s.id);b.setAttribute('data-kw',s.kw);bindApp(b)}
+      d.appendChild(b);
+    });
+  }
+  window.setDock=function(list){
+    list.forEach(function(x){dockIcons[x.id]=x.i||'ok'});
+    renderDock();
+  };
+  renderDock();
+  if(A&&!dockAsked){dockAsked=true;A.requestDock(JSON.stringify(DOCK.filter(function(s){return s.kw}).map(function(s){return{id:s.id,kw:s.kw}})))}
+
+  /* Glisser pour démarrer */
+  (function(){
+    var knob=$('#knob'),slide=$('#slide'),x0=0,dx=0,drag=false,moved=false,max=316;
+    function setX(v){dx=Math.max(0,Math.min(max,v));knob.style.transform='translateX('+dx+'px)'}
+    knob.addEventListener('pointerdown',function(e){drag=true;moved=false;x0=e.clientX-dx*(parseFloat(stage.style.transform.replace('scale(',''))||1);try{knob.setPointerCapture(e.pointerId)}catch(err){}});
+    knob.addEventListener('pointermove',function(e){
+      if(!drag)return;
+      var sc=parseFloat(stage.style.transform.replace('scale(',''))||1;
+      var v=(e.clientX-x0)/sc;if(Math.abs(v)>6)moved=true;setX(v);
+    });
+    function end(){
+      if(!drag)return;drag=false;
+      if(!moved||dx>max*0.6){go('dash')}
+      knob.style.transition='transform .25s';setX(0);
+      setTimeout(function(){knob.style.transition=''},300);
+    }
+    knob.addEventListener('pointerup',end);
+    knob.addEventListener('pointercancel',function(){drag=false;setX(0)});
+  })();
+
+  /* Feux (affichage uniquement) */
+  var lights=get('lights','0')==='1';
+  function applyLights(){
+    $$('.lt-on').forEach(function(e){e.style.opacity=lights?1:0});
+    $$('.lt-btn').forEach(function(e){e.classList.toggle('on',lights)});
+    $('#lightsTxt').textContent=lights?'Éteindre les feux':'Allumer les feux';
+    segSet('lights',lights?'1':'0');
+  }
+  function setLights(v){lights=!!v;put('lights',lights?'1':'0');applyLights()}
+  $('#lightsCover').addEventListener('click',function(){setLights(!lights)});
+  $('#lightsVeh').addEventListener('click',function(){setLights(!lights)});
+
+  /* Contrôles segmentés */
+  function segSet(name,val){$$('[data-seg="'+name+'"] button').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-val')===val)})}
+  var mode=get('mode','auto'),anim=get('anim','full');
+  $$('[data-seg]').forEach(function(seg){
+    var name=seg.getAttribute('data-seg');
+    $$('[data-seg="'+name+'"] button').forEach(function(b){
+      b.addEventListener('click',function(){
+        var v=b.getAttribute('data-val');
+        if(name==='lights'){setLights(v==='1')}
+        else if(name==='mode'){mode=v;put('mode',v);applyMode()}
+        else if(name==='anim'){anim=v;put('anim',v);applyAnim()}
+      });
+    });
+  });
+
+  /* Jour / nuit */
+  var sysNight=/[?&]night=1/.test(location.search),sun=null;
+  function nightByTime(){var n=new Date();if(sun)return n<sun.rise||n>=sun.set;var h=n.getHours();return h<7||h>=20}
+  function applyMode(){
+    var dark=mode==='night'||(mode==='auto'&&(sysNight||nightByTime()));
+    $('#dim').style.opacity=dark?0.3:0;segSet('mode',mode);
+  }
+  window.setNight=function(b){sysNight=!!b;applyMode()};
+  setInterval(applyMode,60000);
+  function applyAnim(){stage.classList.toggle('reduced',anim==='reduced');segSet('anim',anim)}
+
+  /* Luminosité */
+  var bright=parseInt(call(function(){return A?A.getBrightness():get('bright','80')},'80'),10)||80;
+  $('#brightRange').value=bright;
+  $('#brightRange').addEventListener('input',function(){
+    bright=parseInt(this.value,10);
+    if(A)call(function(){A.setBrightness(bright)});else put('bright',bright);
+  });
+  function refreshWrite(){
+    var ok=!A||call(function(){return A.canWrite()},true);
+    $('#rowWrite').style.display=ok?'none':'flex';
+  }
+  $('#btnWrite').addEventListener('click',function(){if(A)A.requestWrite()});
+
+  /* Volume du poste */
+  var vm=$('#volMedia');
+  if(A)vm.value=call(function(){return A.getVolume()},50);
+  vm.addEventListener('input',function(){if(A)call(function(){A.setVolume(parseInt(vm.value,10))})});
+
+  /* Voix */
+  var vOn=true,vVol=90;
+  if(A){var s=A.getVoice().split(',');vOn=s[0]==='1';vVol=parseInt(s[1],10)||90}
+  else{vOn=get('vOn','1')==='1';vVol=parseInt(get('vVol','90'),10)}
+  function applyVoice(){$('#swVoice').classList.toggle('on',vOn);$('#volVoice').value=vVol}
+  function saveVoice(){if(A)A.setVoice(vOn,vVol);else{put('vOn',vOn?'1':'0');put('vVol',vVol)}}
+  $('#swVoice').addEventListener('click',function(){vOn=!vOn;applyVoice();saveVoice()});
+  $('#volVoice').addEventListener('input',function(){vVol=parseInt(this.value,10);saveVoice()});
+  $('#testVoice').addEventListener('click',function(){if(A)A.testVoice()});
+
+  /* Bluetooth */
+  var btOn=false;
+  function refreshBt(){
+    if(!A){$('#btState').textContent='Aperçu : visible sur le poste';return}
+    var st=call(function(){return A.btState()},'na');
+    var sw=$('#swBt');
+    if(st==='na'){
+      $('#btState').textContent='Indisponible dans Android : le Bluetooth du poste est géré par son propre boîtier.';
+      sw.style.display='none';$('#btList').textContent='—';return;
+    }
+    btOn=st==='on';sw.style.display='block';sw.classList.toggle('on',btOn);
+    $('#btState').textContent=btOn?'Activé':'Désactivé';
+    var l=call(function(){return JSON.parse(A.btDevices())},[]);
+    $('#btList').textContent=l.length?l.join(' · '):'Aucun appareil associé visible';
+  }
+  $('#swBt').addEventListener('click',function(){if(A){A.btSet(!btOn);setTimeout(refreshBt,1200)}});
+  $('#btOpen').addEventListener('click',function(){if(A)A.btSettings()});
+
+  /* Diagnostic ZLink */
+  $('#zdiag').addEventListener('click',function(){
+    var z=$('#zinfo');z.textContent=A?A.zlinkInfo():'Disponible uniquement sur le poste.';z.style.display='block';
+  });
+  window.setZlink=function(found){
+    $('#zState').textContent=found?'ZLink détecté : Waze et musique de ton iPhone':'ZLink introuvable sur ce poste';
+    var z2=$('#zState2');z2.textContent=found?'Détecté':'Introuvable';if(found)z2.className='muted ok';
+  };
+  if(!A){$('#zState2').textContent='Aperçu'}
+
+  /* Applications installées */
+  window.setApps=function(list){
+    var g=$('#appsGrid');g.innerHTML='';
+    list.forEach(function(a){
+      var b=document.createElement('button');b.className='ap';
+      var im=document.createElement('img');im.src=a.i;im.alt='';
+      var nm=document.createElement('div');nm.className='nm';nm.textContent=a.l;
+      b.appendChild(im);b.appendChild(nm);
+      b.addEventListener('click',function(){if(A)A.launchPackage(a.p)});
+      g.appendChild(b);
+    });
+  };
+  function demoApps(){
+    var g=$('#appsGrid');g.innerHTML='';
+    ['Fichiers','Galerie','Musique','Radio','Réglages','Navigateur','Caméra','Horloge'].forEach(function(n){
+      var b=document.createElement('button');b.className='ap';
+      b.innerHTML='<div class="ph">'+n.charAt(0)+'</div><div class="nm">'+n+'</div>';
+      g.appendChild(b);
+    });
+  }
+
+  /* Météo */
+  function wxLabel(c){
+    if(c===0)return 'Ciel dégagé';if(c<=2)return 'Peu nuageux';if(c===3)return 'Couvert';
+    if(c===45||c===48)return 'Brouillard';if(c>=51&&c<=57)return 'Bruine';if(c>=61&&c<=67)return 'Pluie';
+    if(c>=71&&c<=77)return 'Neige';if(c>=80&&c<=82)return 'Averses';if(c>=95)return 'Orage';return 'Variable';
+  }
+  var lat=null,lon=null;
+  function loadWeather(){
+    if(lat===null)return;
+    fetch('https://api.open-meteo.com/v1/forecast?latitude='+lat+'&longitude='+lon+'&current=temperature_2m,weather_code&daily=sunrise,sunset&forecast_days=1&timezone=auto')
+      .then(function(r){return r.json()})
+      .then(function(j){
+        $('#wxTemp').textContent=Math.round(j.current.temperature_2m)+'°';
+        $('#wxText').textContent=wxLabel(j.current.weather_code);
+        $('#wxChip').style.display='flex';
+        try{var r=new Date(j.daily.sunrise[0]),s=new Date(j.daily.sunset[0]);if(!isNaN(r)&&!isNaN(s)){sun={rise:r,set:s};applyMode()}}catch(e){}
+      })
+      .catch(function(){setTimeout(loadWeather,60000)});
+  }
+  window.addEventListener('online',loadWeather);
+  window.setLocation=function(a,b){lat=a;lon=b;loadWeather()};
+  setInterval(loadWeather,1800000);
+
+  applyLights();applyMode();applyAnim();applyVoice();
+})();
+</script>
+</body>
+</html>
