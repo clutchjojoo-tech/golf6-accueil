@@ -2,8 +2,6 @@ name: Fabriquer l'application
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main, master]
 
 jobs:
   build:
@@ -23,9 +21,23 @@ jobs:
           gradle-version: '8.7'
 
       - name: Fabriquer l'APK
-        run: gradle assembleDebug --no-daemon
+        shell: bash
+        run: |
+          set -o pipefail
+          gradle assembleDebug --no-daemon --stacktrace 2>&1 | tee build.log
+
+      - name: Afficher l'erreur
+        if: failure()
+        shell: bash
+        run: |
+          MSG=$(grep -E -m 6 -A 4 'What went wrong|error:|Could not|Execution failed|FAILURE' build.log | head -40 | cut -c1-300 | sed ':a;N;$!ba;s/\n/%0A/g')
+          echo "::error title=Erreur de fabrication::${MSG:-Aucun journal: voir etape en echec}"
 
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: accueil-golf6-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: journal-et-apk
+          path: |
+            app/build/outputs/apk/debug/app-debug.apk
+            build.log
+          if-no-files-found: ignore
