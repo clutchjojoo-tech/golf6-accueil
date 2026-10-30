@@ -7,31 +7,46 @@ jobs:
   build:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - id: s1
+        uses: actions/checkout@v4
+        continue-on-error: true
 
-      - uses: actions/setup-java@v5
+      - id: s2
+        uses: actions/setup-java@v5
+        continue-on-error: true
         with:
           distribution: temurin
           java-version: '17'
 
-      - uses: android-actions/setup-android@v3
+      - id: s3
+        uses: android-actions/setup-android@v3
+        continue-on-error: true
 
-      - uses: gradle/actions/setup-gradle@v4
+      - id: s4
+        uses: gradle/actions/setup-gradle@v4
+        continue-on-error: true
         with:
           gradle-version: '8.7'
 
-      - name: Fabriquer l'APK
+      - id: s5
+        name: Fabriquer l'APK
+        continue-on-error: true
         shell: bash
         run: |
           set -o pipefail
           gradle assembleDebug --no-daemon --stacktrace 2>&1 | tee build.log
 
-      - name: Afficher l'erreur
-        if: failure()
+      - name: Bilan
+        if: always()
         shell: bash
         run: |
-          MSG=$(grep -E -m 6 -A 4 'What went wrong|error:|Could not|Execution failed|FAILURE' build.log | head -40 | cut -c1-300 | sed ':a;N;$!ba;s/\n/%0A/g')
-          echo "::error title=Erreur de fabrication::${MSG:-Aucun journal: voir etape en echec}"
+          set +e
+          echo "::error title=Bilan des etapes::checkout=${{ steps.s1.outcome }} java=${{ steps.s2.outcome }} android=${{ steps.s3.outcome }} gradle=${{ steps.s4.outcome }} build=${{ steps.s5.outcome }}"
+          if [ -f build.log ]; then
+            MSG=$(tail -n 30 build.log | cut -c1-250 | sed ':a;N;$!ba;s/\n/%0A/g')
+            echo "::error title=Fin du journal Gradle::${MSG}"
+          fi
+          [ "${{ steps.s5.outcome }}" = "success" ] || exit 1
 
       - uses: actions/upload-artifact@v4
         if: always()
